@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+
+declare -A _modules_
+[[ -v _modules_[$1] ]] && return
+
+_functions_ () {
+  env -i bash <<END
+    shopt -s expand_aliases
+    alias source=:
+    \\source $1 &>/dev/null
+    compgen -A function;:
+END
+}
+
+[[ -z $1 ]] && return
+
+_module_=${1##*/}
+_module_=${_module_%.*}
+
+_aliases_+=( "$(alias)" )
+unalias -a
+
+shopt -s expand_aliases
+_functions_=$(_functions_ $1)
+
+for _function_ in $_functions_; do
+  alias $_function_=$_module_.$_function_
+done
+
+source $1
+_modules_[$1]=''
+
+for _function_ in $_functions_; do
+  unalias $_function_
+done
+
+eval "${_aliases_[-1]}"
+unset -v _aliases_[-1]
