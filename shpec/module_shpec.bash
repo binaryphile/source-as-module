@@ -79,7 +79,7 @@ describe module
     echo 'foo () { :;}' >$dir/sample.bash
     result=$(env -i bash <<END
       source module $dir/sample.bash
-      compgen -A function | egrep -v '_.*_|module_already_loaded'
+      compgen -A function | egrep -v '_.*_|module.already_loaded'
 END
     )
     assert equal sample.foo "$result"
@@ -114,7 +114,7 @@ END
     echo 'bat () { :;}' >$dir/baz.bash
     result=$(env -i bash <<END
       source module $dir/foo.bash
-      compgen -A function | egrep -v '_.*_|module_already_loaded'
+      compgen -A function | egrep -v '_.*_|module.already_loaded'
 END
     )
     expecteds=( bar.bat baz.bat foo.bat )
@@ -126,7 +126,7 @@ END
     echo 'foo () { :;}' >$dir/sample2.bash
     result=$(env -i bash <<END
       source module $dir/sample1.bash $dir/sample2.bash
-      compgen -A function | egrep -v '_.*_|module_already_loaded'
+      compgen -A function | egrep -v '_.*_|module.already_loaded'
 END
     )
     expecteds=( sample1.foo sample2.foo )
@@ -143,14 +143,24 @@ END
   it "imports a function"
     cat <<END >$dir/sample.bash
       source $Dir/lib/module
-      module_already_loaded && return
+      module.already_loaded && return
       foo () { :;}
 END
     result=$(env -i bash <<END
       source $dir/sample.bash
-      compgen -A function | egrep -v '_.*_|module_already_loaded'
+      compgen -A function | egrep -v '_.*_|module.already_loaded'
 END
     )
     assert equal sample.foo "$result"
+  ti
+
+  it "lets the module be assigned a different name"
+    echo 'foo () { :;}' >$dir/sample.bash
+    result=$(env -i bash <<END
+      source module sam=$dir/sample.bash
+      compgen -A function | egrep -v '_.*_|module.already_loaded'
+END
+    )
+    assert equal sam.foo "$result"
   ti
 end_describe
