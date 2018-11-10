@@ -6,6 +6,7 @@ declare -Ag _modules_
 set -o noglob
 shopt -s expand_aliases
 alias _args?_='(( $# ))'
+alias _to_args_='set --'
 
 loaded? () {
   declare -Ag _modules_
@@ -35,7 +36,7 @@ _in?_ () {
 
 { _args?_ && _blank?_ $1 ;} && return
 
-! _args?_ && set -- ${BASH_SOURCE[1]}
+! _args?_ && _to_args_ ${BASH_SOURCE[1]}
 
 { _defined?_ BASH_SOURCE[1] && [[ ${BASH_SOURCE[1]##*/} != module ]] ;} && {
   { _defined?_ _ancestors_ && _in?_ "${_ancestors_[*]}" ${BASH_SOURCE[1]} ;} && return
@@ -77,12 +78,13 @@ for _file_; do
   unset -v _aliases_[-1]
 done
 
+unalias _args?_
+unalias _to_args_
+unset -f _blank?_
+unset -f _defined?_
+unset -f _in?_
 unset -v _file_
 unset -v _function_
 unset -v _functions_
 unset -v _module_
-unalias _args?_
-unset -f _in?_
-unset -f _blank?_
-unset -f _defined?_
 [[ -v BASH_SOURCE[1] && ${BASH_SOURCE[1]##*/} != module ]] && unset -v _ancestors_[-1]
