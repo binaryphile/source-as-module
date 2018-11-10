@@ -1,6 +1,7 @@
 IFS=$'\n'
 set -o noglob
 
+set --
 Dir=$(dirname $(readlink -f $BASH_SOURCE))/..
 source $Dir/lib/shpec-helper.bash
 cd $Dir/lib
@@ -14,14 +15,7 @@ describe _functions_
   alias setup='dir=$(mktemp -d) || return'
   alias teardown='rm -rf $dir'
 
-  it "lists all functions in a file"
-    echo 'myfunc () { :;}' >$dir/sample.bash
-    result=$(_functions_ $dir/sample.bash)
-    in? "$result" myfunc
-    assert equal 0 $?
-  ti
-
-  it "doesn't list any other functions"
+  it "lists only the functions in a file"
     echo 'myfunc () { :;}' >$dir/sample.bash
     result=$(_functions_ $dir/sample.bash)
     assert equal myfunc "$result"
@@ -38,7 +32,7 @@ END
   ti
 
   it "returns 0 if there are no functions defined"
-    echo : >$dir/sample.bash
+    touch $dir/sample.bash
     _functions_ $dir/sample.bash
     assert equal 0 $?
   ti
@@ -85,10 +79,10 @@ describe module
     echo 'foo () { :;}' >$dir/sample.bash
     result=$(env -i bash <<END
       source module $dir/sample.bash
-      compgen -A function
+      compgen -A function | egrep -v '_.*_|loaded?'
 END
     )
-    assert equal $'_functions_\nsample.foo' "$result"
+    assert equal sample.foo "$result"
   ti
 
   it "doesn't leave aliases"
@@ -120,9 +114,43 @@ END
     echo 'bat () { :;}' >$dir/baz.bash
     result=$(env -i bash <<END
       source module $dir/foo.bash
-      compgen -A function
+      compgen -A function | egrep -v '_.*_|loaded?'
 END
     )
-    assert equal $'_functions_\nbar.bat\nbaz.bat\nfoo.bat' "$result"
+    expecteds=( bar.bat baz.bat foo.bat )
+    assert equal "${expecteds[*]}" "$result"
+  ti
+
+  it "sources multiple files"
+    echo 'foo () { :;}' >$dir/sample1.bash
+    echo 'foo () { :;}' >$dir/sample2.bash
+    result=$(env -i bash <<END
+      source module $dir/sample1.bash $dir/sample2.bash
+      compgen -A function | egrep -v '_.*_|loaded?'
+END
+    )
+    expecteds=( sample1.foo sample2.foo )
+    assert equal "${expecteds[*]}" "$result"
+  ti
+
+  it "stores a module in a global hash"
+    echo "source $Dir/lib/module" >$dir/sample.bash
+    source $dir/sample.bash
+    [[ -v _modules_[$dir/sample.bash] ]]
+    assert equal 0 $?
+  ti
+
+  it "imports a function"
+    cat <<END >$dir/sample.bash
+      source $Dir/lib/module
+      loaded? && return
+      foo () { :;}
+END
+    result=$(env -i bash <<END
+      source $dir/sample.bash
+      compgen -A function | egrep -v '_.*_|loaded?'
+END
+    )
+    assert equal sample.foo "$result"
   ti
 end_describe

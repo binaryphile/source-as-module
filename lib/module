@@ -1,7 +1,14 @@
 #!/usr/bin/env bash
+# shebang for syntax detection, not a command
 
-declare -A _modules_
-[[ -v _modules_[$1] ]] && return
+shopt -s expand_aliases
+
+declare -Ag _modules_
+
+loaded? () {
+  declare -Ag _modules_
+  [[ -v _modules_[${BASH_SOURCE[1]}] ]]
+}
 
 _functions_ () {
   env -i bash <<END
@@ -12,27 +19,56 @@ _functions_ () {
 END
 }
 
-[[ -z $1 ]] && return
+{ (( $# )) && [[ -z $1 ]] ;} && return
 
-_module_=${1##*/}
-_module_=${_module_%.*}
+! (( $# )) && set -- ${BASH_SOURCE[1]}
 
-_aliases_+=( "$(alias)" )
-unalias -a
+_in?_ () {
+  [[ $IFS$1$IFS == *"$IFS$2$IFS"* ]]
+}
 
-shopt -s expand_aliases
-_functions_=$(_functions_ $1)
+[[ -v BASH_SOURCE[1] && ${BASH_SOURCE[1]##*/} != module ]] && {
+  { [[ -v _ancestors_ ]] && _in?_ "${_ancestors_[*]}" ${BASH_SOURCE[1]} ;} && return
+  _ancestors_+=( ${BASH_SOURCE[1]} )
+}
 
-for _function_ in $_functions_; do
-  alias $_function_=$_module_.$_function_
+for _file_; do
+  [[ -v _modules_[$_file_] ]] && continue
+
+  _module_=${_file_##*/}
+  _module_=${_module_%.*}
+
+  _aliases_+=( "$(alias)" )
+  unalias -a
+
+  _functions_=$(_functions_ $_file_)
+
+  for _function_ in $_functions_; do
+    alias $_function_=$_module_.$_function_
+  done
+
+  _files_+=( $_file_        )
+  _funcs_+=( "$_functions_" )
+
+  source $_file_
+
+  _file_=${_files_[-1]}
+  _functions_=${_funcs_[-1]}
+  unset -v _files_[-1]
+  unset -v _funcs_[-1]
+
+  _modules_[$_file_]=''
+
+  for _function_ in $_functions_; do
+    unalias $_function_
+  done
+
+  eval "${_aliases_[-1]}"
+  unset -v _aliases_[-1]
 done
 
-source $1
-_modules_[$1]=''
-
-for _function_ in $_functions_; do
-  unalias $_function_
-done
-
-eval "${_aliases_[-1]}"
-unset -v _aliases_[-1]
+unset -v _file_
+unset -v _function_
+unset -v _functions_
+unset -v _module_
+[[ -v BASH_SOURCE[1] && ${BASH_SOURCE[1]##*/} != module ]] && unset -v _ancestors_[-1]
