@@ -1,13 +1,23 @@
 #!/usr/bin/env bash
 # shebang for syntax detection, not a command
 
-shopt -s expand_aliases
-
 declare -Ag _modules_
+
+set -o noglob
+shopt -s expand_aliases
+alias _args?_='(( $# ))'
 
 loaded? () {
   declare -Ag _modules_
   [[ -v _modules_[${BASH_SOURCE[1]}] ]]
+}
+
+_blank?_ () {
+  [[ -z ${1:-} ]]
+}
+
+_defined?_ () {
+  [[ -v $1 ]]
 }
 
 _functions_ () {
@@ -19,21 +29,21 @@ _functions_ () {
 END
 }
 
-{ (( $# )) && [[ -z $1 ]] ;} && return
-
-! (( $# )) && set -- ${BASH_SOURCE[1]}
-
 _in?_ () {
   [[ $IFS$1$IFS == *"$IFS$2$IFS"* ]]
 }
 
-[[ -v BASH_SOURCE[1] && ${BASH_SOURCE[1]##*/} != module ]] && {
-  { [[ -v _ancestors_ ]] && _in?_ "${_ancestors_[*]}" ${BASH_SOURCE[1]} ;} && return
+{ _args?_ && _blank?_ $1 ;} && return
+
+! _args?_ && set -- ${BASH_SOURCE[1]}
+
+{ _defined?_ BASH_SOURCE[1] && [[ ${BASH_SOURCE[1]##*/} != module ]] ;} && {
+  { _defined?_ _ancestors_ && _in?_ "${_ancestors_[*]}" ${BASH_SOURCE[1]} ;} && return
   _ancestors_+=( ${BASH_SOURCE[1]} )
 }
 
 for _file_; do
-  [[ -v _modules_[$_file_] ]] && continue
+  _defined?_ _modules_[$_file_] && continue
 
   _module_=${_file_##*/}
   _module_=${_module_%.*}
@@ -71,4 +81,8 @@ unset -v _file_
 unset -v _function_
 unset -v _functions_
 unset -v _module_
+unalias _args?_
+unset -f _in?_
+unset -f _blank?_
+unset -f _defined?_
 [[ -v BASH_SOURCE[1] && ${BASH_SOURCE[1]##*/} != module ]] && unset -v _ancestors_[-1]
