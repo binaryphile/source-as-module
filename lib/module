@@ -29,17 +29,35 @@ _functions_ () {
 END
 }
 
-_in?_ () {
+_in_ () {
   [[ $IFS$1$IFS == *"$IFS$2$IFS"* ]]
+}
+
+_pop_ () {
+  local -n ref1_=$1
+  local ref2_=${2:-}
+
+  _present_ $ref2_ && printf -v $ref2_ %s "${ref1_[-1]}"
+  unset -v $1[-1]
+}
+
+_present_ () {
+  [[ -n ${1:-} ]]
+}
+
+_push_ () {
+  local -n ref_=$2
+
+  ref_+=( "$1" )
 }
 
 { _args_ && _blank_ $1 ;} && return
 
 ! _args_ && _to_args_ ${BASH_SOURCE[1]}
 
-{ _defined_ BASH_SOURCE[1] && [[ ${BASH_SOURCE[1]##*/} != module ]] ;} && {
-  { _defined_ _ancestors_ && _in?_ "${_ancestors_[*]}" ${BASH_SOURCE[1]} ;} && return
-  _ancestors_+=( ${BASH_SOURCE[1]} )
+{ _present_ ${BASH_SOURCE[1]:-} && [[ ${BASH_SOURCE[1]##*/} != module ]] ;} && {
+  { _defined_ _ancestors_ && _in_ "${_ancestors_[*]}" ${BASH_SOURCE[1]} ;} && return
+  _push_ ${BASH_SOURCE[1]} _ancestors_
 }
 
 for _file_; do
@@ -48,7 +66,7 @@ for _file_; do
   _module_=${_file_##*/}
   _module_=${_module_%.*}
 
-  _aliases_+=( "$(alias)" )
+  _push_ "$(alias)" _aliases_
   unalias -a
 
   _functions_=$(_functions_ $_file_)
@@ -57,15 +75,13 @@ for _file_; do
     alias $_function_=$_module_.$_function_
   done
 
-  _files_+=( $_file_        )
-  _funcs_+=( "$_functions_" )
+  _push_ $_file_ _files_
+  _push_ "$_functions_" _funcs_
 
   source $_file_
 
-  _file_=${_files_[-1]}
-  _functions_=${_funcs_[-1]}
-  unset -v _files_[-1]
-  unset -v _funcs_[-1]
+  _pop_ _files_ _file_
+  _pop_ _funcs_ _functions_
 
   _modules_[$_file_]=''
 
@@ -74,14 +90,15 @@ for _file_; do
   done
 
   eval "${_aliases_[-1]}"
-  unset -v _aliases_[-1]
+  _pop_ _aliases_
 done
 
 unalias _args_
 unalias _to_args_
 unset -f _blank_
 unset -f _defined_
-unset -f _in?_
+unset -f _in_
+unset -f _push_
 unset -v _file_
 unset -v _function_
 unset -v _functions_
