@@ -3,21 +3,20 @@
 
 declare -Ag _modules_
 
-set -o noglob
 shopt -s expand_aliases
-alias _args?_='(( $# ))'
+alias _args_='(( $# ))'
 alias _to_args_='set --'
 
-loaded? () {
+module_already_loaded () {
   declare -Ag _modules_
   [[ -v _modules_[${BASH_SOURCE[1]}] ]]
 }
 
-_blank?_ () {
+_blank_ () {
   [[ -z ${1:-} ]]
 }
 
-_defined?_ () {
+_defined_ () {
   [[ -v $1 ]]
 }
 
@@ -34,17 +33,17 @@ _in?_ () {
   [[ $IFS$1$IFS == *"$IFS$2$IFS"* ]]
 }
 
-{ _args?_ && _blank?_ $1 ;} && return
+{ _args_ && _blank_ $1 ;} && return
 
-! _args?_ && _to_args_ ${BASH_SOURCE[1]}
+! _args_ && _to_args_ ${BASH_SOURCE[1]}
 
-{ _defined?_ BASH_SOURCE[1] && [[ ${BASH_SOURCE[1]##*/} != module ]] ;} && {
-  { _defined?_ _ancestors_ && _in?_ "${_ancestors_[*]}" ${BASH_SOURCE[1]} ;} && return
+{ _defined_ BASH_SOURCE[1] && [[ ${BASH_SOURCE[1]##*/} != module ]] ;} && {
+  { _defined_ _ancestors_ && _in?_ "${_ancestors_[*]}" ${BASH_SOURCE[1]} ;} && return
   _ancestors_+=( ${BASH_SOURCE[1]} )
 }
 
 for _file_; do
-  _defined?_ _modules_[$_file_] && continue
+  _defined_ _modules_[$_file_] && continue
 
   _module_=${_file_##*/}
   _module_=${_module_%.*}
@@ -78,10 +77,10 @@ for _file_; do
   unset -v _aliases_[-1]
 done
 
-unalias _args?_
+unalias _args_
 unalias _to_args_
-unset -f _blank?_
-unset -f _defined?_
+unset -f _blank_
+unset -f _defined_
 unset -f _in?_
 unset -v _file_
 unset -v _function_
