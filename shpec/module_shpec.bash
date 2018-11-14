@@ -19,19 +19,19 @@ describe _functions_
   alias teardown='rm -rf $dir'
 
   it "lists only the functions in a file"
-    echo 'myfunc () { :;}' >$dir/sample.bash
+    echo 'foo () { :;}' >$dir/sample.bash
     result=$(_functions_ $dir/sample.bash)
-    assert equal myfunc "$result"
+    assert equal foo "$result"
   ti
 
   it "doesn't list functions from a sub-source"
     cat <<END >$dir/sample.bash
-      myfunc () { :;}
+      foo () { :;}
       source $dir/other.bash
 END
-    echo 'sample () { :;}' >$dir/other.bash
+    echo 'bar () { :;}' >$dir/other.bash
     result=$(_functions_ $dir/sample.bash)
-    assert equal myfunc "$result"
+    assert equal foo "$result"
   ti
 
   it "returns 0 if there are no functions defined"
@@ -82,16 +82,34 @@ describe module
     echo 'foo () { :;}' >$dir/sample.bash
     result=$(env -i bash <<END
       source module $dir/sample.bash
-      compgen -A function | egrep -v '_.*_|module.already_loaded'
+      compgen -A function | egrep -v '^_.*_$|^module.already_loaded$'
 END
     )
     assert equal sample.foo "$result"
   ti
 
-  it "doesn't leave aliases"
+  it "doesn't leave function aliases"
     echo 'foo () { :;}' >$dir/sample.bash
     source module $dir/sample.bash
     ! alias foo &>/dev/null
+    assert equal 0 $?
+  ti
+
+  it "leaves defined aliases"
+    echo 'alias foo=:' >$dir/sample.bash
+    source module $dir/sample.bash
+    alias foo &>/dev/null
+    assert equal 0 $?
+  ti
+
+  it "leaves defined aliases which overlap a sub-source"
+    cat <<'    END' >$dir/sample.bash
+      alias foo=:
+      source module $dir/sample2.bash
+    END
+    echo 'foo () { :;}' >$dir/sample2.bash
+    source module $dir/sample.bash
+    alias foo &>/dev/null
     assert equal 0 $?
   ti
 
@@ -117,10 +135,10 @@ END
     echo 'bat () { :;}' >$dir/baz.bash
     result=$(env -i bash <<END
       source module $dir/foo.bash
-      compgen -A function | egrep -v '_.*_|module.already_loaded'
+      compgen -A function | egrep -v '^_.*_$|^module.already_loaded$'
 END
     )
-    expecteds=( bar.bat baz.bat foo.bat )
+    expecteds=( foo.bar.bat foo.bar.baz.bat foo.bat )
     assert equal "${expecteds[*]}" "$result"
   ti
 
@@ -129,7 +147,7 @@ END
     echo 'foo () { :;}' >$dir/sample2.bash
     result=$(env -i bash <<END
       source module $dir/sample1.bash $dir/sample2.bash
-      compgen -A function | egrep -v '_.*_|module.already_loaded'
+      compgen -A function | egrep -v '^_.*_$|^module.already_loaded$'
 END
     )
     expecteds=( sample1.foo sample2.foo )
@@ -151,7 +169,7 @@ END
 END
     result=$(env -i bash <<END
       source $dir/sample.bash
-      compgen -A function | egrep -v '_.*_|module.already_loaded'
+      compgen -A function | egrep -v '^_.*_$|^module.already_loaded$'
 END
     )
     assert equal sample.foo "$result"
@@ -161,7 +179,7 @@ END
     echo 'foo () { :;}' >$dir/sample.bash
     result=$(env -i bash <<END
       source module sam=$dir/sample.bash
-      compgen -A function | egrep -v '_.*_|module.already_loaded'
+      compgen -A function | egrep -v '^_.*_$|^module.already_loaded$'
 END
     )
     assert equal sam.foo "$result"

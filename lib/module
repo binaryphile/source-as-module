@@ -20,6 +20,10 @@ _defined_ () {
   [[ -v $1 ]]
 }
 
+_eq_ () {
+  [[ $1 == "$2" ]]
+}
+
 _functions_ () {
   env -i bash <<END
     shopt -s expand_aliases
@@ -51,13 +55,15 @@ _push_ () {
   ref+=( "$1" )
 }
 
+_parent_=${BASH_SOURCE[1]:-}
+
 { _args_ && _blank_ $1 ;} && return
 
-! _args_ && _to_args_ ${BASH_SOURCE[1]}
+! _args_ && _to_args_ $_parent_
 
-{ _present_ ${BASH_SOURCE[1]:-} && [[ ${BASH_SOURCE[1]##*/} != module ]] ;} && {
-  { _defined_ _ancestors_ && _in_ "${_ancestors_[*]}" ${BASH_SOURCE[1]} ;} && return
-  _push_ ${BASH_SOURCE[1]} _ancestors_
+{ _present_ $_parent_ && ! _eq_ ${_parent_##*/} module ;} && {
+  _in_ "${_ancestors_[*]:-}" $_parent_ && return
+  _push_ $_parent_ _ancestors_
 }
 
 for _file_; do
@@ -66,10 +72,12 @@ for _file_; do
 
   _defined_ _modules_[$_file_] && continue
 
-  [[ $_module_ == $_file_ ]] && {
+  _eq_ $_module_ $_file_ && {
     _module_=${_module_##*/}
     _module_=${_module_%.*}
   }
+
+  _prefix_=${_prefix_:-}${_prefix_:+.}$_module_
 
   _push_ "$(alias)" _aliases_
   unalias -a
@@ -77,13 +85,19 @@ for _file_; do
   _functions_=$(_functions_ $_file_)
 
   for _function_ in $_functions_; do
-    alias $_function_=$_module_.$_function_
+    alias $_function_=$_prefix_.$_function_
   done
 
   _push_ $_file_ _files_
   _push_ "$_functions_" _funcs_
 
   source $_file_
+
+  ! [[ $_prefix_ == *.* ]]
+  case $? in
+    0 ) _prefix_=''             ;;
+    * ) _prefix_=${_prefix_%%.*};;
+  esac
 
   _pop_ _files_ _file_
   _pop_ _funcs_ _functions_
@@ -98,15 +112,23 @@ for _file_; do
   _pop_ _aliases_
 done
 
-unalias _args_
-unalias _to_args_
-unset -f _blank_
-unset -f _defined_
-unset -f _in_
-unset -f _push_
-unset -v _file_
-unset -v _function_
-unset -v _functions_
-unset -v _module_
-unset -v _name_
-[[ -v BASH_SOURCE[1] && ${BASH_SOURCE[1]##*/} != module ]] && unset -v _ancestors_[-1]
+! (( ${#_files_[*]} )) && {
+  unalias _args_
+  unalias _to_args_
+  unset -f _blank_
+  unset -f _defined_
+  unset -f _eq_
+  unset -f _in_
+  unset -f _pop_
+  unset -f _present_
+  unset -f _push_
+  unset -v _file_
+  unset -v _funcs_
+  unset -v _function_
+  unset -v _functions_
+  unset -v _module_
+  unset -v _name_
+  unset -v _parent_
+  unset -v _prefix_
+}
+[[ -n ${BASH_SOURCE[1]} && ${BASH_SOURCE[1]##*/} != module ]] && unset -v _ancestors_[-1]
