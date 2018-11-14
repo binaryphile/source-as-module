@@ -21,7 +21,7 @@ _defined_ () {
 }
 
 _eq_ () {
-  [[ $1 == "$2" ]]
+  [[ $1 == "${2:-}" ]]
 }
 
 _functions_ () {
@@ -59,6 +59,8 @@ _parent_=${BASH_SOURCE[1]:-}
 
 { _args_ && _blank_ $1 ;} && return
 
+{ ! _args_ && _present_ ${_file_:-} && _eq_ $_parent_ $_file_ ;} && return
+
 ! _args_ && _to_args_ $_parent_
 
 { _present_ $_parent_ && ! _eq_ ${_parent_##*/} module ;} && {
@@ -69,6 +71,8 @@ _parent_=${BASH_SOURCE[1]:-}
 for _file_; do
   _module_=${_file_%%=*}
   _file_=${_file_#*=}
+
+  _defined_ _modules_[$_file_] && continue
 
   _eq_ $_module_ $_file_ && {
     _module_=${_module_##*/}
@@ -89,6 +93,7 @@ for _file_; do
   _push_ $_file_ _files_
   _push_ "$_functions_" _funcs_
 
+  set --
   source $_file_
 
   ! [[ $_prefix_ == *.* ]]

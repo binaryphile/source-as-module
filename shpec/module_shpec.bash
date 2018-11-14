@@ -175,4 +175,18 @@ END
     )
     assert equal sam.foo "$result"
   ti
+
+  it "lets the module be assigned a different name when its a module already"
+    cat <<END >$dir/sample.bash
+      source $Dir/lib/module
+      module.already_loaded && return
+      foo () { :;}
+END
+    result=$(env -i bash <<END
+      source module sam=$dir/sample.bash
+      compgen -A function | egrep -v '^_.*_$|^module.already_loaded$'
+END
+    )
+    assert equal sam.foo "$result"
+  ti
 end_describe
