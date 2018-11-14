@@ -69,15 +69,6 @@ describe module
     assert equal hello "$result"
   ti
 
-  it "doesn't source it twice"
-    echo 'echo hello' >$dir/sample.bash
-    result=$(
-      source module $dir/sample.bash
-      source module $dir/sample.bash
-    )
-    assert equal hello "$result"
-  ti
-
   it "imports a function"
     echo 'foo () { :;}' >$dir/sample.bash
     result=$(env -i bash <<END

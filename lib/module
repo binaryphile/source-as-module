@@ -70,8 +70,6 @@ for _file_; do
   _module_=${_file_%%=*}
   _file_=${_file_#*=}
 
-  _defined_ _modules_[$_file_] && continue
-
   _eq_ $_module_ $_file_ && {
     _module_=${_module_##*/}
     _module_=${_module_%.*}
