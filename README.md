@@ -101,14 +101,6 @@ name, e.g.  *foo_myvar*.  Global variables may otherwise conflict with
 the caller's.  Unfortunately *module* can't help with namespacing of
 variables.
 
-Singular Importation
---------------------
-
-Aside from function namespacing, *module* also ensures that any module
-is only run once even if it is sourced multiple times, so long as it's
-through *source module ...* each time. This prevents circular
-dependencies as well as running initialization code more than once.
-
 Other Notes
 -----------
 
