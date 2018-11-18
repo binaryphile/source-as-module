@@ -57,16 +57,17 @@ _push_ () {
 
 _parent_=${BASH_SOURCE[1]:-}
 
-{ _args_ && _blank_ $1 ;} && return
+[[ ${1:-} != module ]] && return
+set -- ${*:2}
 
 { ! _args_ && _present_ ${_file_:-} && _eq_ $_parent_ $_file_ ;} && return
 
-! _args_ && _to_args_ $_parent_
-
-{ _present_ $_parent_ && ! _eq_ ${_parent_##*/} module ;} && {
+{ ! _args_ && _present_ $_parent_ && ! _eq_ ${_parent_##*/} module ;} && {
   _in_ "${_ancestors_[*]:-}" $_parent_ && return
   _push_ $_parent_ _ancestors_
 }
+
+! _args_ && _to_args_ $_parent_
 
 for _file_; do
   _module_=${_file_%%=*}
