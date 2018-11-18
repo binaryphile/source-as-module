@@ -80,7 +80,7 @@ for _file_; do
     _module_=${_module_%.*}
   }
 
-  _prefix_=${_prefix_:-}${_prefix_:+.}$_module_
+  _prefixes_+=( $_module_ )
 
   _push_ "$(alias)" _aliases_
   unalias -a
@@ -88,7 +88,8 @@ for _file_; do
   _functions_=$(_functions_ $_file_)
 
   for _function_ in $_functions_; do
-    alias $_function_=$_prefix_.$_function_
+    printf -v _prefix_ %s. ${_prefixes_[*]}
+    alias $_function_=$_prefix_$_function_
   done
 
   _push_ $_file_ _files_
@@ -97,11 +98,7 @@ for _file_; do
   set --
   source $_file_
 
-  ! [[ $_prefix_ == *.* ]]
-  case $? in
-    0 ) _prefix_=''             ;;
-    * ) _prefix_=${_prefix_%%.*};;
-  esac
+  unset -v _prefixes_[-1]
 
   _pop_ _files_ _file_
   _pop_ _funcs_ _functions_
@@ -134,5 +131,6 @@ done
   unset -v _name_
   unset -v _parent_
   unset -v _prefix_
+  unset -v _prefixes_
 }
 [[ -n ${BASH_SOURCE[1]} && ${BASH_SOURCE[1]##*/} != module ]] && unset -v _ancestors_[-1]
