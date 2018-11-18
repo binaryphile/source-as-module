@@ -22,7 +22,7 @@ the *function name* form.
 Installation
 ------------
 
-Clone this repository or download *lib/module* and put it on your PATH.
+Clone this repository or download *lib/as* and put it on your PATH.
 
 Sourcing Regular Libraries with Module
 --------------------------------------
@@ -30,13 +30,13 @@ Sourcing Regular Libraries with Module
 From your code:
 
 ``` bash
-source module /path/to/foo.sh
+source as module /path/to/foo.sh
 ```
 
 or for multiple libraries:
 
 ``` bash
-source module /path/to/foo.sh /path/to/bar.sh
+source as module /path/to/foo.sh /path/to/bar.sh
 ```
 
 */path/to* is optional if *foo.sh* is on your PATH, as usual for
@@ -50,7 +50,7 @@ determine what name to use for the import. If you want to use a
 different name, use the following:
 
 ``` bash
-source module bar=/path/to/foo.sh
+source as module bar=/path/to/foo.sh
 ```
 
 This will import function *foo* as *bar.foo*. The same syntax works if
@@ -67,17 +67,17 @@ To make it so that your own library is a module when sourced by other
 files, add this at the top of your file:
 
 ``` bash
-source $(dirname $(readlink -f $BASH_SOURCE))/module
+source $(dirname $(readlink -f $BASH_SOURCE))/as module
 module.already_loaded && return
 ```
 
 Note that MacOS requires GNU readlink, called as *greadlink*, from
 homebrew.
 
-In the shown use case, you'll want to distribute the *module* file with
-your script. However if *module* is on the PATH of the system already,
-you don't need the *dirname* and *readlink* calls, in which case the
-line is just *source module*.
+In the shown use case, you'll want to distribute the *as* file with your
+script. However if *module* is on the PATH of the system already, you
+don't need the *dirname* and *readlink* calls, in which case the line is
+just *source as module*.
 
 If your module is named *foo.sh* and defines a function named *foo*,
 that function will be available to any code which sources your module as
@@ -102,10 +102,33 @@ the caller's.  Unfortunately *module* can't help with namespacing of
 variables.
 
 Other Notes
------------
+===========
 
 Note that *module* does leave some private functions and variables
 defined, but they are pre- and postfixed with an underscore so they
 aren't likely to cause conflict with yours.
+
+Why As?
+-------
+
+Why not just *module* instead of naming the library *as*?
+Unfortunately, bash is a little weird when it comes to passing
+positional arguments to files which are sourced.  You can pass
+parameters in the *source* call, but if you don't, then the caller's
+positional parameters are available instead.  This gets confusing for
+*module*, since it uses the positional arguments to tell how exactly it
+was invoked.
+
+To always clear the caller's positional arguments, the alternatives are
+to either force you to call *set --* arguments before sourcing *module*,
+or to require you to always feed the library a dummy argument.  I chose
+the latter.  *source as module* reads the most cleanly, so I changed the
+library's name to *as* and require an argument of *module*.
+
+Using Module as a Library
+-------------------------
+
+To only source module's functions and not use its functionality by
+default, call *source as library*.
 
   [blog post]: http://www.binaryphile.com/bash/2018/10/16/approach-bash-like-a-developer-part-33-modules.html
