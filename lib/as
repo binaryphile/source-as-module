@@ -50,9 +50,9 @@ _present_ () {
 }
 
 _push_ () {
-  local -n ref=$2
+  local -n ref=$1
 
-  ref+=( "$1" )
+  ref+=( "$2" )
 }
 
 _parent_=${BASH_SOURCE[1]:-}
@@ -64,7 +64,7 @@ set -- ${*:2}
 
 { ! _args_ && _present_ $_parent_ && ! _eq_ ${_parent_##*/} module ;} && {
   _in_ "${_ancestors_[*]:-}" $_parent_ && return
-  _push_ $_parent_ _ancestors_
+  _push_ _ancestors_ $_parent_
 }
 
 ! _args_ && _to_args_ $_parent_
@@ -82,7 +82,7 @@ for _file_; do
 
   _prefixes_+=( $_module_ )
 
-  _push_ "$(alias)" _aliases_
+  _push_ _aliases_ "$(alias)"
   unalias -a
 
   _functions_=$(_functions_ $_file_)
@@ -92,8 +92,8 @@ for _file_; do
     alias $_function_=$_prefix_$_function_
   done
 
-  _push_ $_file_ _files_
-  _push_ "$_functions_" _funcs_
+  _push_ _files_ $_file_
+  _push_ _funcs_ "$_functions_"
 
   set --
   source $_file_
