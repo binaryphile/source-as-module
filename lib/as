@@ -60,6 +60,8 @@ _parent_=${BASH_SOURCE[1]:-}
 [[ ${1:-} != module ]] && return
 set -- ${*:2}
 
+_numargs_+=( $# )
+
 { ! _args_ && _present_ ${_file_:-} && _eq_ $_parent_ $_file_ ;} && return
 
 { ! _args_ && _present_ $_parent_ && ! _eq_ ${_parent_##*/} module ;} && {
@@ -133,4 +135,5 @@ done
   unset -v _prefix_
   unset -v _prefixes_
 }
-[[ -n ${BASH_SOURCE[1]} && ${BASH_SOURCE[1]##*/} != module ]] && unset -v _ancestors_[-1]
+{ ! (( _numargs_[-1] )) && [[ -n ${BASH_SOURCE[1]} && ${BASH_SOURCE[1]##*/} != module ]] ;} && unset -v _ancestors_[-1]
+unset -v _numargs_[-1]
