@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # shebang for syntax detection, not a command
+# do *not* set executable!
 
 declare -Ag _modules_
 

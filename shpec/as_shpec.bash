@@ -5,7 +5,7 @@ export TMPDIR=${TMPDIR:-$HOME/tmp}
 mkdir -p $TMPDIR
 
 Dir=$(dirname $(readlink -f $BASH_SOURCE))/..
-source $Dir/lib/shpec-helper.bash
+source $Dir/shpec/shpec-helper.bash
 cd $Dir/lib
 source ./as library
 
